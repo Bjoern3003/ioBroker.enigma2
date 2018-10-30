@@ -29,6 +29,7 @@ var PATH = {
     DELETE:				'/web/timerdelete?sRef=',
     TIMER_TOGGLE:		'/api/timertogglestatus?sRef=',
     TIMERLIST:			'/web/timerlist',
+    SERVICELIST:		'/web/getallservices',
     IP_CHECK:			'/web/about'
 };
 
@@ -419,6 +420,38 @@ function evaluateCommandResponse (command, deviceId, xml) {
 			}
 		
             break;
+		case "SERVICELIST":
+			adapter.delObject('Bouquets');
+			
+			if(xml.e2servicelistrecursive.e2bouquet !== undefined)
+			{
+				for (var i = 0; i < xml.e2servicelistrecursive.e2bouquet.length; i++)
+				{
+					adapter.setObject('Bouquets.' + xml.e2servicelistrecursive.e2bouquet[i].e2servicename[0], {
+						type: 'channel',
+						common: {},
+						native: {}
+					});
+					
+					for (var j = 0; j < xml.e2servicelistrecursive.e2bouquet[i].e2servicelist[0].e2service.length; j++)
+					{
+						adapter.setObject('Bouquets.' + xml.e2servicelistrecursive.e2bouquet[i].e2servicename[0] + '.' + xml.e2servicelistrecursive.e2bouquet[i].e2servicelist[0].e2service[j].e2servicename[0], {
+							type: 'state',
+							common: {
+								type: 	'string',
+								role: 	'text',
+								name: 	'Servicereference of '+ xml.e2servicelistrecursive.e2bouquet[i].e2servicelist[0].e2service[j].e2servicename[0],
+								desc:	'Servicereference of '+ xml.e2servicelistrecursive.e2bouquet[i].e2servicelist[0].e2service[j].e2servicename[0],
+								read:  	false,
+								write: 	true
+							},
+							native: {}
+						});
+						adapter.setState('Bouquets.' + xml.e2servicelistrecursive.e2bouquet[i].e2servicename[0] + '.' + xml.e2servicelistrecursive.e2bouquet[i].e2servicelist[0].e2service[j].e2servicename[0], {val: xml.e2servicelistrecursive.e2bouquet[i].e2servicelist[0].e2service[j].e2servicereference[0], ack: true});
+					}
+				}
+			}
+			break;
         case "VOLUME_UP":
         case "VOLUME_DOWN":
         case "LEFT":
@@ -731,6 +764,7 @@ function main() {
         getResponse('GETINFO',    		deviceId, PATH['ABOUT'],       		evaluateCommandResponse);
         getResponse('GETVOLUME',  		deviceId, PATH['VOLUME'],      		evaluateCommandResponse);
         getResponse('GETCURRENT', 		deviceId, PATH['GET_CURRENT'], 		evaluateCommandResponse);
+        getResponse('SERVICELIST', 		deviceId, PATH['SERVICELIST'], 		evaluateCommandResponse);
 	}, adapter.config.PollingInterval);
 
     setInterval(function() {
