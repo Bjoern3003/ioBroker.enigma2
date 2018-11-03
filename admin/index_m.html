@@ -19,7 +19,8 @@
 		"enigma2 adapter settings": {"en": "enigma2 adapter settings", "de": "enigma2 Adapter Einstellunen", "ru": "Пример"},
         "example adapter settings": {"de": "enigma2", "ru": "Пример"},
         "IPAddress":                {"en": "IP address", "de": "IP Adresse (nur http kein https)", "ru": ""},
-		"Port":                     {"en": "Port", "de": "Port", "ru": ""},
+		"PortWebIf":                     {"en": "Port WebIf", "de": "Port WebIf", "ru": ""},
+		"PortEnigma":                     {"en": "Port Enigmalight", "de": "Port Enigmalight", "ru": ""},
         "Username":                 {"en": "Username", "de": "Benutzername", "ru": ""},
         "Password":                 {"en": "Password", "de": "Passwort", "ru": ""},
         "PollingInterval":          {"en": "PollingInterval", "de": "Poll-Interval", "ru": ""},
@@ -131,8 +132,12 @@
                             <span class="helper-text" data-error="invalid IPAddress" data-success="valid IPAddress"></span>
                         </div>
                         <div class="col s12">
-                            <input class="value" data-crypt="1" type="Port" id="Port"/>
-                            <label for="Port" class="translate">Port</label>
+                            <input class="value" data-crypt="1" type="PortWebIf" id="PortWebIf"/>
+                            <label for="PortWebIf" class="translate">PortWebIf</label>
+                        </div>
+                        <div class="col s12">
+                            <input class="value" data-crypt="1" type="PortEnigma" id="PortEnigma"/>
+                            <label for="PortEnigma" class="translate">PortEnigma</label>
                         </div>
                     </div>
                 </div>
