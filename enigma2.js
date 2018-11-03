@@ -30,6 +30,7 @@ function enigma2() {
 	this.e2bouquetidx		= 0;
 	this.e2serviceidx		= 0;
 	this.piconext 			= 'png';
+	this.piconpath			= '';
 	this.PATH = {
 		MESSAGEANSWER:		'/web/messageanswer?getanswer=now',
 		DEVICEINFO:			'/web/deviceinfo',
@@ -50,6 +51,7 @@ function enigma2() {
 	
 	this.init = function()
 	{
+		var e2 = this;
 		adapter.setObject('enigma2.MODEL',{type:'state',common:{type:'string',role:'state',name:'Receiver Model',read:true,write:false},native:{}});
 		adapter.setObject('enigma2.WEB_IF_VERSION',{type:'state',common:{type:'string',role:'state',name:'Receiver Webinterface Version',read:true,write:false},native:{}});
 		adapter.setObject('enigma2.NETWORK',{type:'state',common:{type:'string',role:'state',name:'Receiver used Network',read:true,write:false},native:{}});
@@ -60,9 +62,13 @@ function enigma2() {
 		//setInterval(checkStatus,adapter.config.PollingInterval);
 		this.getResponse('DEVICEINFO', this.PATH['DEVICEINFO'], this.evaluateCommandResponse);
 		
-		this.main();
+		this.getPiconPath(function(path) {			
+			adapter.log.debug('picon path: ' + path);
 		
-		this.timer();
+			e2.piconpath = path;
+			e2.main();
+			e2.timer();
+		});
 	}
 	
 	this.main = function()
@@ -155,6 +161,8 @@ function enigma2() {
 		adapter.setObject('enigma2.EVENTDESCRIPTION',{type:'state',common:{type:'string',role:'state',name:'Event description',read:true,write:false},native:{}});
 		adapter.setObject('enigma2.EVENTREMAINING',{type:'state',common:{type:'number',role:'media.duration',name:'EVENT REMAINING',read:true,write:false},native:{}})
 		
+		e2.getResponse('SERVICELIST', 	this.PATH['SERVICELIST'], 		this.evaluateCommandResponse);
+		
 		//Check ever 3 secs
 		adapter.log.info("starting Polling every " + adapter.config.PollingInterval + " ms");
 		setInterval(function() {
@@ -236,7 +244,7 @@ function enigma2() {
 				pageData += chunk
 			});
 			res.on('end', function () {
-				if(command == 'PICON' || command == 'ENIGMALIGHT')
+				if(command == 'PICON' || command == 'ENIGMALIGHT' || command == 'checkPath')
 				{
 					if (callback) {
 						callback (e2, command, (statusCode == '200' && pageData.length > 0 ? true : false), pageData, cbdata);
@@ -277,7 +285,6 @@ function enigma2() {
 				this.getResponse('GETINFO',    		this.PATH['ABOUT'],       		this.evaluateCommandResponse);
 				this.getResponse('GETVOLUME',  		this.PATH['VOLUME'],      		this.evaluateCommandResponse);
 				this.getResponse('GETCURRENT', 		this.PATH['GET_CURRENT'], 		this.evaluateCommandResponse);
-				this.getResponse('SERVICELIST', 	this.PATH['SERVICELIST'], 		this.evaluateCommandResponse);
 			} else {
 				adapter.log.info("enigma2: " + adapter.config.IPAddress + ":" + adapter.config.Port + " ist nicht erreichbar!");
 				adapter.setState('enigma2-CONNECTION', false, true );
@@ -352,8 +359,11 @@ function enigma2() {
 				break;
 			case "GETCURRENT":
 				// Check Sender Picon
-				var picon = xml.e2currentserviceinformation.e2eventlist[0].e2event[0].e2eventservicereference[0].replace(/:/g, '_').replace(/_$/, '');
-				t.getResponse('PICON', "/picon/" +picon +"."+t.piconext, t.setPIcon);
+				if(t.piconpath.length > 0)
+				{
+					var picon = xml.e2currentserviceinformation.e2eventlist[0].e2event[0].e2eventservicereference[0].replace(/:/g, '_').replace(/_$/, '');
+					t.getResponse('PICON', t.getPiconPath() + picon +"."+t.piconext, t.setPIcon);
+				}
 			
 				adapter.log.debug("Box EVENTDURATION:" + parseInt(xml.e2currentserviceinformation.e2eventlist[0].e2event[0].e2eventduration[0]));
 				adapter.setState('enigma2.EVENTDURATION', {val: parseInt(xml.e2currentserviceinformation.e2eventlist[0].e2event[0].e2eventduration[0]), ack: true});
@@ -495,13 +505,16 @@ function enigma2() {
 							});
 							adapter.setState('Bouquets.' + xml.e2servicelistrecursive.e2bouquet[t.e2bouquetidx].e2servicename[0] + '.' + xml.e2servicelistrecursive.e2bouquet[t.e2bouquetidx].e2servicelist[0].e2service[t.e2serviceidx].e2servicename[0] + '.Servicereference', {val: xml.e2servicelistrecursive.e2bouquet[t.e2bouquetidx].e2servicelist[0].e2service[t.e2serviceidx].e2servicereference[0], ack: true});
 							
-							var picon = xml.e2servicelistrecursive.e2bouquet[t.e2bouquetidx].e2servicelist[0].e2service[t.e2serviceidx].e2servicereference[0].replace(/:/g, '_').replace(/_$/, '');
-							
-							var data = new respData();
-							
-							data.addData('state', 'Bouquets.' + xml.e2servicelistrecursive.e2bouquet[t.e2bouquetidx].e2servicename[0] + '.' + xml.e2servicelistrecursive.e2bouquet[t.e2bouquetidx].e2servicelist[0].e2service[t.e2serviceidx].e2servicename[0] + '.Servicepicon');
-							
-							t.getResponse('PICON', "/picon/" +picon +"."+t.piconext, t.setPIcon, data);
+							if(t.piconpath.length > 0)
+							{
+								var picon = xml.e2servicelistrecursive.e2bouquet[t.e2bouquetidx].e2servicelist[0].e2service[t.e2serviceidx].e2servicereference[0].replace(/:/g, '_').replace(/_$/, '');
+								
+								var data = new respData();
+								
+								data.addData('state', 'Bouquets.' + xml.e2servicelistrecursive.e2bouquet[t.e2bouquetidx].e2servicename[0] + '.' + xml.e2servicelistrecursive.e2bouquet[t.e2bouquetidx].e2servicelist[0].e2service[t.e2serviceidx].e2servicename[0] + '.Servicepicon');
+								
+								t.getResponse('PICON', t.getPiconPath() + picon +"."+t.piconext, t.setPIcon, data);
+							}
 						}
 					}
 				}
@@ -723,6 +736,54 @@ function enigma2() {
 			default:
 				return false;
 		}
+	}
+	
+	this.getPiconPath = function(callback)
+	{
+		var e2 = this;
+		if(this.piconpath.length == 0)
+		{
+			var PICON_PREFIXES = [
+				"/media/cf/",
+				"/media/mmc/",
+				"/media/usb/",
+				"/media/hdd/",
+				"/usr/share/enigma2/",
+				"/"
+			];
+
+			var PICON_FOLDERS = [
+				"owipicon",
+				"picon"
+			];
+			
+			for(var prefix in PICON_PREFIXES)
+			{
+				e2.getResponse('checkPath', PICON_PREFIXES[prefix], function(e2, command, bStatusCode, pageData) {
+					if(bStatusCode)
+					{
+						for(var folder in PICON_FOLDERS)
+						{
+							var current = PICON_PREFIXES[prefix] + PICON_FOLDERS[folder] + '/';
+							e2.getResponse('checkPath', current, function(e2, command, bStatusCode, pageData) {
+								if(bStatusCode)
+								{
+									if(typeof callback == 'function')
+										callback (current);
+									else
+										return current;
+								}
+							});
+						}
+					}
+				});
+			}
+		}
+		
+		if(typeof callback == 'function')
+			callback (this.piconpath);
+		else
+			return this.piconpath;
 	}
 }
 
