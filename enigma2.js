@@ -337,19 +337,18 @@ function enigma2() {
 			case 'STANDBY_TOGGLE':
 				break;
 			case "GETSTANDBY":
-				adapter.log.debug("Box Standby: " + Boolean(xml.e2powerstate.e2instandby));
-				adapter.setState('enigma2.STANDBY', {val: Boolean(xml.e2powerstate.e2instandby), ack: true});
+				adapter.log.debug("Box Standby: " + t.parseBool(xml.e2powerstate.e2instandby));
+				adapter.setState('enigma2.STANDBY', {val: t.parseBool(xml.e2powerstate.e2instandby), ack: true});
 				break;
 			case "GETVOLUME":
 				if (!xml.e2volume || !xml.e2volume.e2current) {
 					adapter.log.error('No e2volume found');
 					return;
 				}
-				bool = Boolean(xml.e2volume.e2ismuted);
 				adapter.log.debug("Box Volume:" + parseInt(xml.e2volume.e2current[0]));
 				adapter.setState('enigma2.VOLUME', {val: parseInt(xml.e2volume.e2current[0]), ack: true});
-				adapter.log.debug("Box Muted:" + Boolean(xml.e2volume.e2ismuted));
-				adapter.setState('enigma2.MUTED', {val: Boolean(xml.e2volume.e2ismuted), ack: true});
+				adapter.log.debug("Box Muted:" + t.parseBool(xml.e2volume.e2ismuted));
+				adapter.setState('enigma2.MUTED', {val: t.parseBool(xml.e2volume.e2ismuted), ack: true});
 				break;
 			case "GETCURRENT":
 				// Check Sender Picon
@@ -711,6 +710,18 @@ function enigma2() {
 			});
 			
 			adapter.setState(state, {val: base64, ack: true});
+		}
+	}
+	
+	this.parseBool = function(string){
+		var cleanedString = string[0].replace(/(\t\n|\n|\t)/gm,"");
+		switch(cleanedString.toLowerCase()){
+			case "true":
+			case "yes":
+			case "1": 
+				return true;
+			default:
+				return false;
 		}
 	}
 }
